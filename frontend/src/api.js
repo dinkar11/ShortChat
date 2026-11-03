@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8080/api';
+// Centralized API Base URL configuration:
+// Supports VITE_API_URL environment variable for production (e.g. Render backend)
+// Falls back to http://localhost:8080 during local development.
+// Normalizes trailing slashes and ensures /api path is correctly appended.
+const rawApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8080').trim();
+const cleanBaseUrl = rawApiUrl.replace(/\/+$/, '');
+export const API_BASE = cleanBaseUrl.endsWith('/api') ? cleanBaseUrl : `${cleanBaseUrl}/api`;
 
 const client = axios.create({
   baseURL: API_BASE,
@@ -81,3 +87,5 @@ export const sendMessage = (data) => client.post('/messages', data);
 
 export const deleteConversation = (userA, userB) =>
   client.delete('/messages', { params: { userA, userB } });
+
+export default client;
