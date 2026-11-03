@@ -165,7 +165,7 @@ export default function AuthView({ onLoginSuccess }) {
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. aryancoder999@gmail.com or your_username"
+              placeholder="e.g. example@gmail.com or your_username"
               required
               style={{
                 padding: '10px 12px',
