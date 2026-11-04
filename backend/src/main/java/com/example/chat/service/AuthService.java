@@ -2,14 +2,18 @@ package com.example.chat.service;
 
 import com.example.chat.dto.AuthRequest;
 import com.example.chat.dto.AuthResponse;
+import com.example.chat.model.PasswordResetOtp;
 import com.example.chat.model.User;
 import com.example.chat.model.UserToken;
+import com.example.chat.repository.PasswordResetOtpRepository;
 import com.example.chat.repository.UserRepository;
 import com.example.chat.repository.UserTokenRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -17,6 +21,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserTokenRepository userTokenRepository;
+    private final PasswordResetOtpRepository passwordResetOtpRepository;
+    private final EmailService emailService;
 
     private static final String[] ADJECTIVES = {
         "swift", "clever", "cosmic", "silent", "brave", "bright", "shadow", "cyber",
@@ -30,9 +36,14 @@ public class AuthService {
         "orbit", "spark", "echo", "nexus"
     };
 
-    public AuthService(UserRepository userRepository, UserTokenRepository userTokenRepository) {
+    public AuthService(UserRepository userRepository,
+                       UserTokenRepository userTokenRepository,
+                       PasswordResetOtpRepository passwordResetOtpRepository,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.userTokenRepository = userTokenRepository;
+        this.passwordResetOtpRepository = passwordResetOtpRepository;
+        this.emailService = emailService;
     }
 
     public AuthResponse register(AuthRequest request) {
@@ -170,6 +181,76 @@ public class AuthService {
             }
         }
         return "user_" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    public Map<String, Object> sendPasswordResetOtp(String rawEmail) {
+        if (rawEmail == null || rawEmail.trim().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        String email = rawEmail.trim().toLowerCase();
+
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No account found with this email address"));
+
+        // Generate secure 6-digit OTP
+        int code = new java.security.SecureRandom().nextInt(900_000) + 100_000;
+        String otp = String.valueOf(code);
+
+        // Delete any existing OTPs for this email and save new one (valid for 10 minutes)
+        passwordResetOtpRepository.deleteByEmail(email);
+        Instant expiresAt = Instant.now().plus(10, ChronoUnit.MINUTES);
+        passwordResetOtpRepository.save(new PasswordResetOtp(email, otp, expiresAt));
+
+        emailService.sendOtpEmail(email, otp);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("email", email);
+        response.put("message", "A 6-digit verification code has been sent to " + email);
+        if (!emailService.isSmtpConfigured()) {
+            response.put("devOtp", otp);
+            response.put("note", "SMTP is unconfigured; OTP provided in response for development/testing.");
+        }
+        return response;
+    }
+
+    public Map<String, Object> resetPasswordWithOtp(String rawEmail, String otp, String newPassword) {
+        if (rawEmail == null || rawEmail.trim().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        String email = rawEmail.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No account found with this email address"));
+
+        if (otp == null || otp.trim().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP is required");
+        }
+
+        PasswordResetOtp resetOtp = passwordResetOtpRepository.findTopByEmailOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active OTP request found. Please request a new code."));
+
+        if (Instant.now().isAfter(resetOtp.getExpiresAt())) {
+            passwordResetOtpRepository.deleteByEmail(email);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP has expired. Please request a new code.");
+        }
+
+        if (!resetOtp.getOtp().equals(otp.trim())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP code. Please check and try again.");
+        }
+
+        if (newPassword == null || newPassword.trim().length() < 4) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 4 characters long");
+        }
+
+        user.setPassword(newPassword.trim());
+        userRepository.save(user);
+        passwordResetOtpRepository.deleteByEmail(email);
+
+        return Map.of(
+                "success", true,
+                "message", "Password has been successfully reset. Please sign in with your new password."
+        );
     }
 
     private AuthResponse createSessionToken(String username, String email) {

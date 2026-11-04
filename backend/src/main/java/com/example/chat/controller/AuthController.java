@@ -2,6 +2,8 @@ package com.example.chat.controller;
 
 import com.example.chat.dto.AuthRequest;
 import com.example.chat.dto.AuthResponse;
+import com.example.chat.dto.ForgotPasswordRequest;
+import com.example.chat.dto.ResetPasswordRequest;
 import com.example.chat.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,6 +29,16 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody AuthRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/forgot-password")
+    public Map<String, Object> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return authService.sendPasswordResetOtp(request.getEmail());
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String, Object> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return authService.resetPasswordWithOtp(request.getEmail(), request.getOtp(), request.getNewPassword());
     }
 
     @GetMapping("/me")

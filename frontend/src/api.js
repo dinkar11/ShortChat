@@ -44,6 +44,11 @@ export const getMe = () => client.get('/auth/me');
 
 export const logoutApi = () => client.post('/auth/logout');
 
+export const forgotPassword = (email) => client.post('/auth/forgot-password', { email });
+
+export const resetPassword = (email, otp, newPassword) =>
+  client.post('/auth/reset-password', { email, otp, newPassword });
+
 // User & Profile endpoints
 export const searchUsers = (q) => client.get('/users/search', { params: { q } });
 
