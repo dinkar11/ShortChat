@@ -59,3 +59,4 @@ public class EmailService {
         return mailSender.isPresent() && fromEmail != null && !fromEmail.isBlank();
     }
 }
+

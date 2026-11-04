@@ -1,6 +1,7 @@
 package com.example.chat.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -23,6 +24,9 @@ public class ChatSession {
     private Instant createdAt = Instant.now();
     private Instant updatedAt = Instant.now();
 
+    @Transient
+    private long unreadCount = 0;
+
     public ChatSession() {}
 
     public ChatSession(String id, String userA, String userB) {
@@ -31,6 +35,7 @@ public class ChatSession {
         this.userB = userB;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        this.unreadCount = 0;
     }
 
     public String getId() { return id; }
@@ -48,8 +53,10 @@ public class ChatSession {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
+    public long getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(long unreadCount) { this.unreadCount = unreadCount; }
+
     public boolean hasParticipant(String username) {
         return username != null && (username.equals(userA) || username.equals(userB));
     }
 }
-

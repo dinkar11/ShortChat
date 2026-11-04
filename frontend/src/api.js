@@ -72,6 +72,8 @@ export const deletePost = (postId) => client.delete(`/posts/${postId}`);
 // Session-based message endpoints
 export const getMySessions = () => client.get('/sessions');
 
+export const getUnreadCount = () => client.get('/messages/unread-count');
+
 export const createOrGetSession = (otherUser) =>
   client.post('/sessions', { otherUser });
 

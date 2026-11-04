@@ -14,4 +14,10 @@ public interface MessageRepository extends MongoRepository<Message, String> {
     long deleteBySessionId(String sessionId);
 
     long deleteByConversationId(String conversationId);
+
+    long countByReceiverIdIgnoreCaseAndStatus(String receiverId, String status);
+
+    long countBySessionIdAndReceiverIdIgnoreCaseAndStatus(String sessionId, String receiverId, String status);
+
+    List<Message> findBySessionIdAndReceiverIdIgnoreCaseAndStatus(String sessionId, String receiverId, String status);
 }

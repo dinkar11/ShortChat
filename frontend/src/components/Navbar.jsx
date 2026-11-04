@@ -5,6 +5,7 @@ export default function Navbar({
   activeTab,
   setActiveTab,
   myId,
+  unreadCount = 0,
   onLogout,
   onStartChat,
   onViewProfile,
@@ -117,10 +118,40 @@ export default function Navbar({
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 6,
+              position: 'relative'
             }}
           >
-            <span>💬</span> Messages
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+              <span>💬</span>
+              {unreadCount > 0 && (
+                <span
+                  title={`${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`}
+                  style={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -10,
+                    background: '#e53935',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    borderRadius: 10,
+                    minWidth: 17,
+                    height: 17,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    lineHeight: 1,
+                    border: '2px solid #fff',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.25)'
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
+            Messages
           </button>
 
           <button

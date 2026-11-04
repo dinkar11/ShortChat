@@ -6,7 +6,7 @@ import MessageList from './components/MessageList.jsx';
 import MessageInput from './components/MessageInput.jsx';
 import AuthView from './components/AuthView.jsx';
 import useConversation from './hooks/useConversation.js';
-import { getMe, setAuthToken, createOrGetSession, deleteSession, logoutApi, getMySessions } from './api';
+import { getMe, setAuthToken, createOrGetSession, deleteSession, logoutApi, getMySessions, getUnreadCount } from './api';
 
 export default function App() {
   const [myId, setMyId] = useState('');
@@ -15,6 +15,7 @@ export default function App() {
   const [otherId, setOtherId] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [recentSessions, setRecentSessions] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(document.fullscreenElement));
 
   useEffect(() => {
@@ -39,11 +40,28 @@ export default function App() {
       .catch(() => setRecentSessions([]));
   };
 
+  const fetchUnreadCount = () => {
+    if (!myId) return;
+    getUnreadCount()
+      .then((res) => setUnreadCount(res.data?.unreadCount || 0))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (myId && activeTab === 'messages') {
       fetchUserSessions();
     }
   }, [myId, activeTab]);
+
+  useEffect(() => {
+    if (!myId) {
+      setUnreadCount(0);
+      return;
+    }
+    fetchUnreadCount();
+    const timer = setInterval(fetchUnreadCount, 3000);
+    return () => clearInterval(timer);
+  }, [myId, activeTab, sessionId]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -175,6 +193,7 @@ export default function App() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             myId={myId}
+            unreadCount={unreadCount}
             onLogout={handleLogout}
             onStartChat={handleStartChat}
             onViewProfile={handleViewProfile}
@@ -362,10 +381,25 @@ export default function App() {
                                 }}
                               >
                                 <div>
-                                  <div style={{ fontWeight: 700, fontSize: 14 }}>
-                                    @{partner}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 14 }}>
+                                      @{partner}
+                                    </span>
+                                    {s.unreadCount > 0 && (
+                                      <span style={{
+                                        background: '#e53935',
+                                        color: '#fff',
+                                        fontSize: 10,
+                                        fontWeight: 800,
+                                        padding: '2px 7px',
+                                        borderRadius: 10,
+                                        letterSpacing: '0.3px'
+                                      }}>
+                                        {s.unreadCount} new
+                                      </span>
+                                    )}
                                   </div>
-                                  <div style={{ fontSize: 11, color: '#666', fontFamily: 'monospace' }}>
+                                  <div style={{ fontSize: 11, color: '#666', fontFamily: 'monospace', marginTop: 2 }}>
                                     ID: {s.id}
                                   </div>
                                 </div>

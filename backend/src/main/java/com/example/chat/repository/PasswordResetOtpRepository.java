@@ -11,3 +11,4 @@ public interface PasswordResetOtpRepository extends MongoRepository<PasswordRese
     Optional<PasswordResetOtp> findTopByEmailOrderByCreatedAtDesc(String email);
     void deleteByEmail(String email);
 }
+

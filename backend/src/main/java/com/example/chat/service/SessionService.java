@@ -25,7 +25,19 @@ public class SessionService {
     }
 
     public List<ChatSession> getUserSessions(String username) {
-        return sessionRepository.findByUserAOrUserBOrderByUpdatedAtDesc(username, username);
+        List<ChatSession> sessions = sessionRepository.findByUserAOrUserBOrderByUpdatedAtDesc(username, username);
+        for (ChatSession s : sessions) {
+            long unread = messageRepository.countBySessionIdAndReceiverIdIgnoreCaseAndStatus(s.getId(), username, "SENT");
+            s.setUnreadCount(unread);
+        }
+        return sessions;
+    }
+
+    public long getUnreadCount(String username) {
+        if (username == null || username.isBlank()) {
+            return 0;
+        }
+        return messageRepository.countByReceiverIdIgnoreCaseAndStatus(username, "SENT");
     }
 
     public ChatSession getOrCreateSession(String userA, String userB) {
@@ -55,6 +67,15 @@ public class SessionService {
         // Enforce authorization
         getSessionWithAuth(sessionId, authenticatedUser);
 
+        // Automatically mark all unread messages for this recipient as READ
+        List<Message> unread = messageRepository.findBySessionIdAndReceiverIdIgnoreCaseAndStatus(sessionId, authenticatedUser, "SENT");
+        if (!unread.isEmpty()) {
+            for (Message m : unread) {
+                m.setStatus("READ");
+            }
+            messageRepository.saveAll(unread);
+        }
+
         List<Message> recent = messageRepository.findTop50BySessionIdOrderBySentAtDesc(sessionId);
         if (recent.isEmpty()) {
             // Fallback for conversationId if migrated
@@ -77,6 +98,7 @@ public class SessionService {
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
         message.setContent(content);
+        message.setStatus("SENT");
         message.setSentAt(Instant.now());
 
         Message saved = messageRepository.save(message);
@@ -97,4 +119,3 @@ public class SessionService {
         return deletedMessages;
     }
 }
-

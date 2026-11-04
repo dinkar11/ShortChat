@@ -4,6 +4,7 @@ import com.example.chat.dto.MessageRequest;
 import com.example.chat.model.Message;
 import com.example.chat.service.ConversationIdUtil;
 import com.example.chat.service.MessageService;
+import com.example.chat.service.SessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +17,18 @@ import java.util.Map;
 public class MessageController {
 
     private final MessageService messageService;
+    private final SessionService sessionService;
 
-    public MessageController(MessageService messageService) {
+    public MessageController(MessageService messageService, SessionService sessionService) {
         this.messageService = messageService;
+        this.sessionService = sessionService;
+    }
+
+    @GetMapping("/unread-count")
+    public Map<String, Object> getUnreadCount(HttpServletRequest request) {
+        String currentUser = (String) request.getAttribute("currentUser");
+        long count = sessionService.getUnreadCount(currentUser);
+        return Map.of("unreadCount", count);
     }
 
     @GetMapping
